@@ -442,8 +442,8 @@ def main():
             if matching_edit_books and st.session_state.selected_book_idx < len(matching_edit_books):
                 selected_book = matching_edit_books[st.session_state.selected_book_idx]
                 
-                # Top-Level Feature: Auto-Refresh Metadata from Open Library API
-                st.markdown("### 🔄 Top-Level Feature: Open Library API Auto-Refresh")
+                # Auto-Refresh Metadata from Open Library API.
+                st.markdown("### 🔄 Open Library API Auto-Refresh")
                 if st.button("🔄 Refresh Metadata from Open Library API", key="top_api_refresh_btn", type="secondary"):
                     q = selected_book.get("isbn") if selected_book.get("isbn") != "N/A" else selected_book.get("title")
                     try:

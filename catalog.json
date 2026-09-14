@@ -1,47 +1,7 @@
 {
-  "total_count": 4,
+  "total_count": 9,
   "generated_at": "2026-09-13T22:59:10Z",
   "books": [
-    {
-      "query": "Schuld und Sühne",
-      "isbn": "N/A",
-      "title": "Raskolnikow, oder: Schuld und sühne",
-      "author": "Фёдор Михайлович Достоевский",
-      "publish_year": "2019",
-      "cover_url": "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80",
-      "publisher": "N/A",
-      "subjects": [
-        "Catalog Item"
-      ],
-      "description": "First published in N/A by Фёдор Михайлович Достоевский.",
-      "status": "found"
-    },
-    {
-      "query": "The Great Gatsby",
-      "isbn": "N/A",
-      "title": "The Great Gatsby",
-      "author": "F. Scott Fitzgerald",
-      "publish_year": "1920",
-      "cover_url": "https://covers.openlibrary.org/b/id/10590366-L.jpg",
-      "publisher": "N/A",
-      "subjects": [
-        "Catalog Item"
-      ],
-      "description": "First published in 1920 by F. Scott Fitzgerald.",
-      "status": "found"
-    },
-    {
-      "query": "1984",
-      "isbn": "N/A",
-      "title": "Nineteen Eighty-Four",
-      "author": "George Orwell",
-      "publish_year": "1949",
-      "cover_url": "https://covers.openlibrary.org/b/id/9267242-L.jpg",
-      "publisher": "N/A",
-      "subjects": [],
-      "description": "First published in 1949 by George Orwell.",
-      "status": "found"
-    },
     {
       "query": "9781419763861",
       "isbn": "9781419763861",
@@ -60,6 +20,127 @@
         "fiction"
       ],
       "description": "First published in 2004 by Kōtarō Isaka.",
+      "status": "found"
+    },
+    {
+      "query": "9781250212832",
+      "isbn": "9781250212832",
+      "title": "Permission to Feel",
+      "author": "Marc Brackett Ph.D., Marc Brackett Ph.D.",
+      "publish_year": "2020",
+      "cover_url": "https://covers.openlibrary.org/b/id/10156930-L.jpg",
+      "publisher": "Celadon Books",
+      "subjects": [
+        "EQ"
+      ],
+      "description": "Published by Celadon Books in Aug 04, 2020.",
+      "status": "found"
+    },
+    {
+      "query": "9781982185824",
+      "isbn": "9781982185824",
+      "title": "I'm Glad My Mom Died",
+      "author": "Jennette McCurdy, Jannettte Mcury",
+      "publish_year": "2022",
+      "cover_url": "https://covers.openlibrary.org/b/id/14611415-L.jpg",
+      "publisher": "Simon and Surcher",
+      "subjects": [
+        "New York Times bestseller",
+        "Family & Relationships",
+        "Biography & Autobiography",
+        "Entertainment & Performing Arts",
+        "Biography & Autobiography / Personal Memoirs"
+      ],
+      "description": "Published by Simon and Surcher in 9th August 2022.",
+      "status": "found"
+    },
+    {
+      "query": "1632175290",
+      "isbn": "1632175290",
+      "title": "Zareen’s Pakistani Kitchen: Recipes from a Well-Fed Childhood (Pakistani and Indian Cooking)",
+      "author": "Zareen Khan (Author), Umair Khan (Author)",
+      "publish_year": "2025",
+      "cover_url": "https://m.media-amazon.com/images/I/91830weaGxL._AC_UF1000,1000_QL80_.jpg",
+      "publisher": "Sasquatch Books",
+      "subjects": [
+        "Cooking"
+      ],
+      "description": "Replete with stunning photography and heartfelt stories, Zareen’s Pakistani Kitchen celebrates the rich, diverse flavors of Pakistani cuisine—along with beloved Desi dishes from across the Indian subcontinent.\n\nCreated by the team behind the James Beard semifinalist–approved restaurant Zareen's in the San Francisco Bay Area, this cookbook makes authentic Pakistani, Indian, and South Asian recipes simple, approachable, and deeply satisfying for home cooks everywhere.\n\nInside, you’ll find 95 flavorful recipes designed for American kitchens, blending favorites from Zareen’s restaurants, nostalgic family dishes, and vibrant street food from Karachi.",
+      "status": "fallback"
+    },
+    {
+      "query": "Playing the Whore",
+      "isbn": "978-1-78168-323-1",
+      "title": "Playing the whore",
+      "author": "Melissa Gira Grant",
+      "publish_year": "2014",
+      "cover_url": "https://covers.openlibrary.org/b/id/7282262-L.jpg",
+      "publisher": "Verso",
+      "subjects": [
+        "Sex Work"
+      ],
+      "description": "First published in 2014 by Melissa Gira Grant.",
+      "status": "found"
+    },
+    {
+      "query": "Attached.",
+      "isbn": "978-1-58542-913-4",
+      "title": "Attached",
+      "author": "Amir Levine",
+      "publish_year": "2010",
+      "cover_url": "https://covers.openlibrary.org/b/id/8620497-L.jpg",
+      "publisher": "Teacher Perigee",
+      "subjects": [
+        "Eq"
+      ],
+      "description": "First published in 2010 by Amir Levine.",
+      "status": "found"
+    },
+    {
+      "query": "9781573245050",
+      "isbn": "9781573245050",
+      "title": "Why We Love Dogs, Eat Pigs, and Wear Cows",
+      "author": "Melanie Joy, John Robbins",
+      "publish_year": "2010",
+      "cover_url": "https://m.media-amazon.com/images/I/41dpAYFkIoL._AC_UF1000,1000_QL80_.jpg",
+      "publisher": "Conari Press",
+      "subjects": [
+        "Veganism",
+        "Vegetarianism"
+      ],
+      "description": "First published in 2010 by Melanie Joy, John Robbins.",
+      "status": "found"
+    },
+    {
+      "query": "please see us",
+      "isbn": "978-1-9821-2749-7",
+      "title": "Please see us",
+      "author": "Caitlin Mullen",
+      "publish_year": "2020",
+      "cover_url": "https://covers.openlibrary.org/b/id/9291005-L.jpg",
+      "publisher": "Gallery Books",
+      "subjects": [
+        "Mystery",
+        "Murder",
+        "Thriller"
+      ],
+      "description": "First published in 2020 by Caitlin Mullen.",
+      "status": "found"
+    },
+    {
+      "query": "codependent no more",
+      "isbn": "978-1-954118-21-8",
+      "title": "Codependent No More",
+      "author": "Melody Beattie",
+      "publish_year": "1986",
+      "cover_url": "https://covers.openlibrary.org/b/id/1512106-L.jpg",
+      "publisher": "Spiegel & Grau New York",
+      "subjects": [
+        "EQ",
+        "Self-Help",
+        "Codependency"
+      ],
+      "description": "First published in 1986 by Melody Beattie.",
       "status": "found"
     }
   ]
