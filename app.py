@@ -35,9 +35,7 @@ st.markdown("""
     .hero-title {
         font-size: 2.5rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #38bdf8;
         margin-bottom: 0.5rem;
     }
     .hero-subtitle {
