@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-dual_agent_supervisor.py - Dual-Agent Supervisor Workflow
+dual_agent_supervisor.py - Multi-Node Supervisor Workflow
 
 Architecture:
-1. Script Writer Agent: Generates or updates scripts based on specs & error logs.
-2. Test Engineer Agent: Evaluates scripts against test suites & schema bounds.
-3. Supervisor Orchestrator: Manages the context protocol and feedback retry loop.
+1. Script Writer Agent (LLM): Generates or updates target Python scripts.
+2. Linter Agent (Deterministic Node): Executes ruff format & check (or AST fallback) to enforce PEP 8 & formatting.
+3. Test Engineer Agent (LLM/Runner): Evaluates formatted scripts against test suites & schema bounds.
+4. Supervisor Orchestrator: Manages the context protocol and feedback retry loop.
 """
 
 import sys
@@ -14,6 +15,7 @@ import json
 import subprocess
 import argparse
 import logging
+import ast
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
@@ -30,6 +32,14 @@ logger = logging.getLogger("DualAgentSupervisor")
 # 1. PROTOCOL MODELS
 # =====================================================================
 
+class LinterResult(BaseModel):
+    """Protocol payload representing code formatting and linting results."""
+    status: str = "PASS"  # "PASS" or "FAIL"
+    exit_code: int = 0
+    formatted_code: str = ""
+    linter_errors: str = ""
+
+
 class TestResult(BaseModel):
     """Protocol payload representing test evaluation results."""
     status: str = "FAIL"  # "PASS" or "FAIL"
@@ -40,7 +50,7 @@ class TestResult(BaseModel):
 
 
 class SupervisorContext(BaseModel):
-    """Protocol payload passed between Supervisor, Writer, and Tester agents."""
+    """Protocol payload passed between Supervisor, Writer, Linter, and Tester agents."""
     task_id: str
     iteration: int = 1
     max_iterations: int = 5
@@ -48,6 +58,7 @@ class SupervisorContext(BaseModel):
     target_script: str
     test_script: str
     script_content: str = ""
+    last_linter_result: Optional[LinterResult] = None
     last_test_result: Optional[TestResult] = None
 
     def to_json(self) -> str:
@@ -55,7 +66,7 @@ class SupervisorContext(BaseModel):
 
 
 # =====================================================================
-# 2. SPECIALIST AGENTS
+# 2. SPECIALIST AGENTS & DETERMINISTIC NODES
 # =====================================================================
 
 class ScriptWriterAgent:
@@ -78,7 +89,6 @@ class ScriptWriterAgent:
                 f"--- Stderr Snippet ---\n{context.last_test_result.stderr[-300:] if context.last_test_result.stderr else 'N/A'}"
             )
 
-        # Read existing script content if present
         if os.path.exists(context.target_script):
             with open(context.target_script, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -87,6 +97,80 @@ class ScriptWriterAgent:
         else:
             logger.info(f"[{self.name}] Initializing new script template for {context.target_script}")
             return f"# Script generated for: {context.specification}\n"
+
+
+class LinterAgent:
+    """Deterministic Specialist Node responsible for formatting and linting scripts."""
+
+    def __init__(self, name: str = "LinterNode"):
+        self.name = name
+
+    def format_and_check(self, script_path: str) -> LinterResult:
+        """
+        Executes 'ruff format' and 'ruff check' (or ast.parse fallback) on script_path.
+        Updates script_path with formatted code and returns LinterResult.
+        """
+        logger.info(f"[{self.name}] Running deterministic linting & formatting checkpoint on '{script_path}'")
+
+        if not os.path.exists(script_path):
+            return LinterResult(
+                status="FAIL",
+                exit_code=1,
+                linter_errors=f"Target file not found for linting: {script_path}"
+            )
+
+        venv_ruff = os.path.join(os.path.dirname(__file__), ".venv", "bin", "ruff")
+        ruff_bin = venv_ruff if os.path.exists(venv_ruff) else "ruff"
+
+        try:
+            # Step 1: Format code
+            format_res = subprocess.run([ruff_bin, "format", script_path], capture_output=True, text=True)
+            if format_res.returncode == 0:
+                logger.info(f"[{self.name}] Ruff formatting completed cleanly on {script_path}.")
+
+            # Step 2: Check lint rules
+            check_res = subprocess.run([ruff_bin, "check", script_path], capture_output=True, text=True)
+            if check_res.returncode == 0:
+                logger.info(f"[{self.name}] PEP 8 & lint checks passed cleanly.")
+                with open(script_path, "r", encoding="utf-8") as f:
+                    formatted_content = f.read()
+                return LinterResult(
+                    status="PASS",
+                    exit_code=0,
+                    formatted_code=formatted_content,
+                    linter_errors=""
+                )
+            else:
+                logger.warning(f"[{self.name}] Ruff lint errors detected on {script_path}.")
+                return LinterResult(
+                    status="FAIL",
+                    exit_code=check_res.returncode,
+                    formatted_code="",
+                    linter_errors=check_res.stdout or check_res.stderr
+                )
+
+        except FileNotFoundError:
+            # Fallback syntax parsing via AST if ruff binary is not found
+            logger.info(f"[{self.name}] 'ruff' binary not installed on PATH. Falling back to AST syntax checkpoint.")
+            try:
+                with open(script_path, "r", encoding="utf-8") as f:
+                    code = f.read()
+                ast.parse(code, filename=script_path)
+                logger.info(f"[{self.name}] AST syntax check passed cleanly.")
+                return LinterResult(
+                    status="PASS",
+                    exit_code=0,
+                    formatted_code=code,
+                    linter_errors=""
+                )
+            except SyntaxError as se:
+                logger.error(f"[{self.name}] SyntaxError detected in {script_path}: {se}")
+                return LinterResult(
+                    status="FAIL",
+                    exit_code=1,
+                    formatted_code="",
+                    linter_errors=f"SyntaxError in {script_path} line {se.lineno}: {se.msg}"
+                )
 
 
 class TestEngineerAgent:
@@ -140,7 +224,6 @@ class TestEngineerAgent:
             if "Traceback" in stderr or "Traceback" in stdout:
                 summary = "Python Traceback detected during test execution."
             elif "[FAIL]" in stdout:
-                # Extract fail line
                 for line in stdout.splitlines():
                     if "[FAIL]" in line:
                         summary = line.strip()
@@ -161,20 +244,21 @@ class TestEngineerAgent:
 
 class DualAgentSupervisor:
     """
-    Orchestrates interaction between ScriptWriterAgent and TestEngineerAgent.
-    Implements the iteration loop and protocol routing.
+    Orchestrates interaction between ScriptWriterAgent, LinterAgent, and TestEngineerAgent.
+    Implements the multi-node workflow loop with deterministic linting.
     """
 
     def __init__(self, max_iterations: int = 5):
         self.max_iterations = max_iterations
         self.writer = ScriptWriterAgent()
+        self.linter = LinterAgent()
         self.tester = TestEngineerAgent()
 
     def run(self, task_id: str, specification: str, target_script: str, test_script: str) -> bool:
         """
-        Executes the supervisor feedback loop until tests pass or max iterations reached.
+        Executes the supervisor loop (Writer -> Linter Node -> Tester Node) until tests pass.
         """
-        logger.info(f"=== Starting Dual-Agent Supervisor Workflow: {task_id} ===")
+        logger.info(f"=== Starting Multi-Node Supervisor Workflow: {task_id} ===")
         logger.info(f"Specification: {specification}")
         logger.info(f"Target Script: {target_script} | Test Script: {test_script}")
 
@@ -194,11 +278,32 @@ class DualAgentSupervisor:
             script_code = self.writer.generate_or_fix(context)
             context.script_content = script_code
 
-            # Step 2: Handoff to Test Engineer for evaluation
+            # Step 2: Deterministic Linter Node formats & checks code
+            linter_result = self.linter.format_and_check(context.target_script)
+            context.last_linter_result = linter_result
+
+            if linter_result.status == "FAIL":
+                logger.warning(
+                    f"Iteration {context.iteration} LINTER CHECK FAILED. "
+                    f"Routing format/lint errors back to Writer Agent..."
+                )
+                context.last_test_result = TestResult(
+                    status="FAIL",
+                    exit_code=linter_result.exit_code,
+                    stderr=linter_result.linter_errors,
+                    error_summary="Linter / PEP 8 Check Failed"
+                )
+                context.iteration += 1
+                continue
+            else:
+                if linter_result.formatted_code:
+                    context.script_content = linter_result.formatted_code
+
+            # Step 3: Handoff formatted code to Test Engineer for execution
             test_result = self.tester.evaluate(context)
             context.last_test_result = test_result
 
-            # Step 3: Evaluate result & Route
+            # Step 4: Evaluate result & Route
             if test_result.status == "PASS":
                 logger.info(f"\n=========================================")
                 logger.info(f" WORKFLOW PASSED AT ITERATION {context.iteration}")
@@ -206,7 +311,7 @@ class DualAgentSupervisor:
                 return True
             else:
                 logger.warning(
-                    f"Iteration {context.iteration} FAILED with exit code {test_result.exit_code}. "
+                    f"Iteration {context.iteration} TEST FAILED with exit code {test_result.exit_code}. "
                     f"Routing error logs back to Writer Agent..."
                 )
                 context.iteration += 1
@@ -222,7 +327,7 @@ class DualAgentSupervisor:
 # =====================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Dual-Agent Supervisor Workflow Runner")
+    parser = argparse.ArgumentParser(description="Multi-Node Supervisor Workflow Runner")
     parser.add_argument("--task-id", type=str, default="task-001", help="Unique identifier for task")
     parser.add_argument("--spec", type=str, default="Validate metadata pipeline script", help="Feature specification")
     parser.add_argument("--script", type=str, default="fetch_catalog.py", help="Target script path")

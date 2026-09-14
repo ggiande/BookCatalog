@@ -378,13 +378,41 @@ def test_publish_year_formatting_and_saving():
     print("[PASS] Publish Year cleaning and save persistence verified successfully!")
 
 
+def test_linter_agent_execution():
+    """Verify that LinterAgent checks Python code and detects syntax errors or passes clean code."""
+    print("[Tester Phase 2] Testing LinterAgent deterministic node...")
+    import os
+    from dual_agent_supervisor import LinterAgent
+
+    linter = LinterAgent()
+    
+    # 1. Test clean file check
+    clean_res = linter.format_and_check("app.py")
+    assert clean_res.status == "PASS", f"Linter check failed on app.py: {clean_res.linter_errors}"
+
+    # 2. Test syntax error detection on temporary file
+    temp_bad_script = "test_invalid_syntax.py"
+    with open(temp_bad_script, "w", encoding="utf-8") as f:
+        f.write("def broken_func(:\n    print('invalid syntax')\n")
+
+    bad_res = linter.format_and_check(temp_bad_script)
+    assert bad_res.status == "FAIL", "Linter failed to catch syntax error in test_invalid_syntax.py!"
+
+    if os.path.exists(temp_bad_script):
+        os.remove(temp_bad_script)
+
+    print("[PASS] LinterAgent deterministic node verified successfully!")
+
+
 if __name__ == "__main__":
     test_add_book_logic()
     test_delete_book_logic()
     test_incomplete_info_badge_logic()
     test_update_book_metadata_logic()
     test_publish_year_formatting_and_saving()
+    test_linter_agent_execution()
     test_streamlit_startup()
+
 
 
 
