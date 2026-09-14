@@ -259,11 +259,134 @@ def test_incomplete_info_badge_logic():
     print("[PASS] Incomplete Info badge detection logic verified successfully!")
 
 
+def test_update_book_metadata_logic():
+    """Verify updating metadata fields and saving to disk."""
+    print("[Tester Phase 2] Testing Update Metadata persistence logic...")
+    import json
+    import os
+    from app import save_catalog
+
+    catalog_path = "catalog.json"
+    if not os.path.exists(catalog_path):
+        print(f"[FAIL] Catalog file {catalog_path} not found.")
+        sys.exit(1)
+
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    test_entry = {
+        "query": "Update Metadata Test",
+        "isbn": "9788888888888",
+        "title": "Metadata Edit Title",
+        "author": "Initial Author",
+        "publish_year": "2020",
+        "cover_url": "https://example.com/cover_string.jpg",
+        "publisher": "Initial Pub",
+        "subjects": ["Test Subject"],
+        "description": "Initial description.",
+        "status": "found"
+    }
+
+    data["books"].append(test_entry)
+    temp_catalog_path = "test_update_catalog.json"
+
+    # Save via helper function
+    save_catalog(data, temp_catalog_path)
+
+    # Modify entry
+    for book in data["books"]:
+        if book.get("isbn") == "9788888888888":
+            book["author"] = "Updated Author Name"
+            book["cover_url"] = "https://example.com/updated_cover_string.jpg"
+            book["subjects"] = ["Updated Subject 1", "Updated Subject 2"]
+
+    save_catalog(data, temp_catalog_path)
+
+    with open(temp_catalog_path, "r", encoding="utf-8") as f:
+        reloaded = json.load(f)
+
+    updated_item = next((b for b in reloaded["books"] if b.get("isbn") == "9788888888888"), None)
+    if not updated_item:
+        print("[FAIL] Updated book entry missing in reloaded catalog!")
+        if os.path.exists(temp_catalog_path):
+            os.remove(temp_catalog_path)
+        sys.exit(1)
+
+    assert updated_item["author"] == "Updated Author Name", "Author field update failed"
+    assert updated_item["cover_url"] == "https://example.com/updated_cover_string.jpg", "Cover URL text string update failed"
+    assert len(updated_item["subjects"]) == 2, "Subjects update failed"
+
+    if os.path.exists(temp_catalog_path):
+        os.remove(temp_catalog_path)
+
+    print("[PASS] Update Metadata persistence logic verified successfully!")
+
+
+def test_publish_year_formatting_and_saving():
+    """Verify that clean_publish_year formats ISO/verbose dates into 4-digit years and saving persists correctly."""
+    print("[Tester Phase 2] Testing Publish Year cleaning and save persistence...")
+    import json
+    import os
+    from app import clean_publish_year, save_catalog
+
+    # Unit assertions on date cleaning
+    assert clean_publish_year("2023-07-25") == "2023", "Failed ISO date conversion"
+    assert clean_publish_year("July 25, 2023") == "2023", "Failed verbose date conversion"
+    assert clean_publish_year("1984") == "1984", "Failed 4-digit year preservation"
+    assert clean_publish_year("N/A") == "N/A", "Failed N/A handling"
+    assert clean_publish_year("") == "N/A", "Failed empty string handling"
+
+    # Persistence verification upon save
+    catalog_path = "catalog.json"
+    if not os.path.exists(catalog_path):
+        print(f"[FAIL] Catalog file {catalog_path} not found.")
+        sys.exit(1)
+
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    test_entry = {
+        "query": "Year Clean Test",
+        "isbn": "9787777777777",
+        "title": "ISO Date Book",
+        "author": "Date Tester",
+        "publish_year": clean_publish_year("2023-07-25"),
+        "cover_url": "https://example.com/cover.jpg",
+        "publisher": "Test Press",
+        "subjects": ["Year Test"],
+        "description": "Transient year test item.",
+        "status": "found"
+    }
+
+    data["books"].append(test_entry)
+    temp_catalog_path = "test_year_catalog.json"
+    save_catalog(data, temp_catalog_path)
+
+    with open(temp_catalog_path, "r", encoding="utf-8") as f:
+        reloaded = json.load(f)
+
+    item = next((b for b in reloaded["books"] if b.get("isbn") == "9787777777777"), None)
+    if not item or item["publish_year"] != "2023":
+        print(f"[FAIL] Expected publish_year '2023' on disk, got '{item.get('publish_year') if item else 'None'}'")
+        if os.path.exists(temp_catalog_path):
+            os.remove(temp_catalog_path)
+        sys.exit(1)
+
+    if os.path.exists(temp_catalog_path):
+        os.remove(temp_catalog_path)
+
+    print("[PASS] Publish Year cleaning and save persistence verified successfully!")
+
+
 if __name__ == "__main__":
     test_add_book_logic()
     test_delete_book_logic()
     test_incomplete_info_badge_logic()
+    test_update_book_metadata_logic()
+    test_publish_year_formatting_and_saving()
     test_streamlit_startup()
+
+
 
 
 

@@ -1,7 +1,9 @@
 import streamlit as st
 import json
 import os
+import re
 from typing import Dict, List, Any
+from fetch_catalog import is_isbn, fetch_book_by_isbn, fetch_book_by_title
 
 # Page Configuration
 st.set_page_config(
@@ -153,6 +155,22 @@ def save_catalog(data: Dict[str, Any], filepath: str = "catalog.json") -> bool:
         return False
 
 
+def clean_publish_year(raw_year: str) -> str:
+    """Extract a 4-digit year (e.g. '2023' from '2023-07-25' or 'July 25, 2023') or return 'N/A'."""
+    if not raw_year or str(raw_year).strip().upper() in ("N/A", "UNKNOWN", ""):
+        return "N/A"
+    
+    match = re.search(r'\b(1[7-9]\d\d|20\d\d)\b', str(raw_year))
+    if match:
+        return match.group(1)
+    
+    clean_digits = "".join([c for c in str(raw_year) if c.isdigit()])
+    if len(clean_digits) == 4:
+        return clean_digits
+        
+    return "N/A"
+
+
 def has_incomplete_info(book: Dict[str, Any]) -> bool:
     """Check if ANY field in book has empty, None, N/A, or Unknown/placeholder values."""
     check_fields = ["title", "author", "isbn", "publish_year", "cover_url", "publisher", "description"]
@@ -221,7 +239,7 @@ def main():
                         "isbn": new_isbn.strip() or "N/A",
                         "title": new_title.strip(),
                         "author": new_author.strip() or "Unknown Author",
-                        "publish_year": new_year.strip() or "N/A",
+                        "publish_year": clean_publish_year(new_year.strip()),
                         "cover_url": new_cover.strip() or "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80",
                         "publisher": new_publisher.strip() or "N/A",
                         "subjects": subjects_list,
@@ -333,74 +351,155 @@ def main():
             return int(digits) if digits else 9999
         filtered_books.sort(key=get_year)
 
-    # Key Performance / Summary Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Catalog Items", total_count)
-    with col2:
-        st.metric("Filtered Display", len(filtered_books))
-    with col3:
-        found_cnt = sum(1 for b in books if b.get("status") == "found")
-        st.metric("Found via API", found_cnt)
-    with col4:
-        fallback_cnt = sum(1 for b in books if b.get("status") == "fallback")
-        st.metric("Graceful Fallbacks", fallback_cnt)
+    tab_browse, tab_edit = st.tabs(["📚 Browse Catalog", "✏️ Edit Metadata"])
 
-    st.markdown("---")
+    with tab_browse:
+        if not books:
+            st.warning("⚠️ No catalog data found! Please run `python fetch_catalog.py` to generate `catalog.json`.")
+        elif not filtered_books:
+            st.info("ℹ️ No books match your current filter criteria. Try adjusting the search query or sidebar filters.")
+        else:
+            # Key Performance / Summary Metrics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Catalog Items", total_count)
+            with col2:
+                st.metric("Filtered Display", len(filtered_books))
+            with col3:
+                found_cnt = sum(1 for b in books if b.get("status") == "found")
+                st.metric("Found via API", found_cnt)
+            with col4:
+                fallback_cnt = sum(1 for b in books if b.get("status") == "fallback")
+                st.metric("Graceful Fallbacks", fallback_cnt)
 
-    if not filtered_books:
-        st.info("ℹ️ No books match your current filter criteria. Try adjusting the search query or sidebar filters.")
-        st.stop()
+            st.markdown("---")
 
-    # Render Book Grid (3 columns)
-    cols_per_row = 3
-    for i in range(0, len(filtered_books), cols_per_row):
-        row_books = filtered_books[i:i + cols_per_row]
-        cols = st.columns(cols_per_row)
-        
-        for idx, book in enumerate(row_books):
-            with cols[idx]:
-                st.markdown(f'<div class="book-card">', unsafe_allow_html=True)
+            # Render Book Grid (3 columns)
+            cols_per_row = 3
+            for i in range(0, len(filtered_books), cols_per_row):
+                row_books = filtered_books[i:i + cols_per_row]
+                cols = st.columns(cols_per_row)
                 
-                # Image thumbnail
-                cover = book.get("cover_url") or "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80"
-                st.image(cover, use_container_width=True)
-                
-                # Badges
-                status_class = "badge-status-found" if book.get("status") == "found" else "badge-status-fallback"
-                status_label = "API VERIFIED" if book.get("status") == "found" else "FALLBACK"
-                pub_yr = book.get("publish_year", "N/A")
-                incomplete_badge = '<span class="badge badge-incomplete">⚠️ INCOMPLETE INFO</span>' if has_incomplete_info(book) else ''
-                
-                st.markdown(f'''
-                    <div>
-                        <span class="badge {status_class}">{status_label}</span>
-                        {incomplete_badge}
-                        <span class="badge badge-year">📅 {pub_yr}</span>
-                    </div>
-                ''', unsafe_allow_html=True)
-                
-                # Title and Author
-                st.markdown(f'<div class="book-title">{book.get("title", "Unknown Title")}</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="book-author">✍️ {book.get("author", "Unknown Author")}</div>', unsafe_allow_html=True)
-                
-                # Expandable details
-                with st.expander("📖 View Full Metadata"):
-                    st.write(f"**ISBN:** `{book.get('isbn', 'N/A')}`")
-                    st.write(f"**Publisher:** {book.get('publisher', 'N/A')}")
-                    st.write(f"**Query Source:** `{book.get('query', '')}`")
-                    st.write(f"**Description:** {book.get('description', 'No description available.')}")
-                    
-                    subjects = book.get("subjects", [])
-                    if subjects:
-                        st.write("**Subjects / Tags:**")
-                        tags_html = "".join([f'<span class="badge badge-subject">{s}</span>' for s in subjects[:5]])
-                        st.markdown(tags_html, unsafe_allow_html=True)
+                for idx, book in enumerate(row_books):
+                    with cols[idx]:
+                        st.markdown(f'<div class="book-card">', unsafe_allow_html=True)
                         
-                    st.json(book)
+                        # Image thumbnail
+                        cover = book.get("cover_url") or "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80"
+                        st.image(cover, use_container_width=True)
+                        
+                        # Badges
+                        status_class = "badge-status-found" if book.get("status") == "found" else "badge-status-fallback"
+                        status_label = "API VERIFIED" if book.get("status") == "found" else "FALLBACK"
+                        pub_yr = book.get("publish_year", "N/A")
+                        incomplete_badge = '<span class="badge badge-incomplete">⚠️ INCOMPLETE INFO</span>' if has_incomplete_info(book) else ''
+                        
+                        st.markdown(
+                            f'<div><span class="badge {status_class}">{status_label}</span>{incomplete_badge}<span class="badge badge-year">📅 {pub_yr}</span></div>',
+                            unsafe_allow_html=True
+                        )
+                        
+                        # Title and Author
+                        st.markdown(f'<div class="book-title">{book.get("title", "Unknown Title")}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="book-author">✍️ {book.get("author", "Unknown Author")}</div>', unsafe_allow_html=True)
+                        
+                        # Expandable details
+                        with st.expander("📖 View Full Metadata"):
+                            st.write(f"**ISBN:** `{book.get('isbn', 'N/A')}`")
+                            st.write(f"**Publisher:** {book.get('publisher', 'N/A')}")
+                            st.write(f"**Query Source:** `{book.get('query', '')}`")
+                            st.write(f"**Description:** {book.get('description', 'No description available.')}")
+                            
+                            subjects = book.get("subjects", [])
+                            if subjects:
+                                st.write("**Subjects / Tags:**")
+                                tags_html = "".join([f'<span class="badge badge-subject">{s}</span>' for s in subjects[:5]])
+                                st.markdown(tags_html, unsafe_allow_html=True)
+                                
+                            st.json(book)
+                            
+                        st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown("<br>", unsafe_allow_html=True)
+
+    with tab_edit:
+        st.subheader("✏️ Edit Book Metadata")
+        st.markdown("Select a book from the list on the left to inspect, edit fields, or trigger an Open Library API auto-refresh.")
+
+        col_list, col_form = st.columns([1, 2])
+
+        with col_list:
+            st.markdown("### 📖 Select Book to Edit")
+            edit_search = st.text_input("Search Catalog:", "", key="edit_tab_search_input").strip().lower()
+            matching_edit_books = [b for b in books if match_book(b, edit_search)]
+
+            if "selected_book_idx" not in st.session_state:
+                st.session_state.selected_book_idx = 0
+
+            if not matching_edit_books:
+                st.info("No matching books found.")
+            else:
+                for idx, b in enumerate(matching_edit_books):
+                    btn_label = f"✏️ {b.get('title', 'Unknown')} ({b.get('author', 'Unknown')})"
+                    if st.button(btn_label, key=f"select_book_btn_{idx}"):
+                        st.session_state.selected_book_idx = idx
+                        st.rerun()
+
+        with col_form:
+            if matching_edit_books and st.session_state.selected_book_idx < len(matching_edit_books):
+                selected_book = matching_edit_books[st.session_state.selected_book_idx]
+                
+                # Top-Level Feature: Auto-Refresh Metadata from Open Library API
+                st.markdown("### 🔄 Top-Level Feature: Open Library API Auto-Refresh")
+                if st.button("🔄 Refresh Metadata from Open Library API", key="top_api_refresh_btn", type="secondary"):
+                    q = selected_book.get("isbn") if selected_book.get("isbn") != "N/A" else selected_book.get("title")
+                    try:
+                        fetched_item = fetch_book_by_isbn(q) if is_isbn(q) else fetch_book_by_title(q)
+                        fetched_dict = fetched_item.model_dump()
+                        
+                        # Update selected book fields
+                        for key, val in fetched_dict.items():
+                            if val and val != "N/A":
+                                selected_book[key] = val
+
+                        if save_catalog(catalog_data, "catalog.json"):
+                            st.success(f"Refreshed metadata for '{selected_book.get('title')}' from Open Library API!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"API refresh failed: {e}")
+
+                st.markdown("---")
+                st.markdown("### 📝 Edit Manual Fields")
+                
+                with st.form("edit_metadata_form"):
+                    updated_title = st.text_input("Title", value=selected_book.get("title", ""))
+                    updated_author = st.text_input("Author", value=selected_book.get("author", ""))
+                    updated_isbn = st.text_input("ISBN", value=selected_book.get("isbn", ""))
+                    updated_year = st.text_input("Publish Year", value=selected_book.get("publish_year", ""))
                     
-                st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
+                    # Cover Image URL rendered explicitly as an editable text string
+                    updated_cover = st.text_input("Cover Image URL (String)", value=selected_book.get("cover_url", ""))
+                    updated_publisher = st.text_input("Publisher", value=selected_book.get("publisher", ""))
+                    
+                    subjs_str = ", ".join(selected_book.get("subjects", [])) if isinstance(selected_book.get("subjects"), list) else str(selected_book.get("subjects", ""))
+                    updated_subjects_raw = st.text_input("Subjects (comma-separated)", value=subjs_str)
+                    updated_description = st.text_area("Description", value=selected_book.get("description", ""))
+
+                    save_submitted = st.form_submit_button("💾 Save Changes", type="primary")
+
+                    if save_submitted:
+                        subjs_list = [s.strip() for s in updated_subjects_raw.split(",") if s.strip()]
+                        selected_book["title"] = updated_title.strip()
+                        selected_book["author"] = updated_author.strip()
+                        selected_book["isbn"] = updated_isbn.strip()
+                        selected_book["publish_year"] = clean_publish_year(updated_year.strip())
+                        selected_book["cover_url"] = updated_cover.strip()
+                        selected_book["publisher"] = updated_publisher.strip()
+                        selected_book["subjects"] = subjs_list
+                        selected_book["description"] = updated_description.strip()
+
+                        if save_catalog(catalog_data, "catalog.json"):
+                            st.success(f"Saved changes for '{updated_title}'! In-memory cache invalidated.")
+                            st.rerun()
 
     # Footer
     st.markdown("---")
