@@ -382,44 +382,40 @@ def main():
                 
                 for idx, book in enumerate(row_books):
                     with cols[idx]:
-                        st.markdown(f'<div class="book-card">', unsafe_allow_html=True)
-                        
-                        # Image thumbnail
-                        cover = book.get("cover_url") or "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80"
-                        st.image(cover, use_container_width=True)
-                        
-                        # Badges
-                        status_class = "badge-status-found" if book.get("status") == "found" else "badge-status-fallback"
-                        status_label = "API VERIFIED" if book.get("status") == "found" else "FALLBACK"
-                        pub_yr = book.get("publish_year", "N/A")
-                        incomplete_badge = '<span class="badge badge-incomplete">⚠️ INCOMPLETE INFO</span>' if has_incomplete_info(book) else ''
-                        
-                        st.markdown(
-                            f'<div><span class="badge {status_class}">{status_label}</span>{incomplete_badge}<span class="badge badge-year">📅 {pub_yr}</span></div>',
-                            unsafe_allow_html=True
-                        )
-                        
-                        # Title and Author
-                        st.markdown(f'<div class="book-title">{book.get("title", "Unknown Title")}</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="book-author">✍️ {book.get("author", "Unknown Author")}</div>', unsafe_allow_html=True)
-                        
-                        # Expandable details
-                        with st.expander("📖 View Full Metadata"):
-                            st.write(f"**ISBN:** `{book.get('isbn', 'N/A')}`")
-                            st.write(f"**Publisher:** {book.get('publisher', 'N/A')}")
-                            st.write(f"**Query Source:** `{book.get('query', '')}`")
-                            st.write(f"**Description:** {book.get('description', 'No description available.')}")
+                        with st.container(border=True):
+                            # Image thumbnail
+                            cover = book.get("cover_url") or "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80"
+                            st.image(cover, use_container_width=True)
                             
-                            subjects = book.get("subjects", [])
-                            if subjects:
-                                st.write("**Subjects / Tags:**")
-                                tags_html = "".join([f'<span class="badge badge-subject">{s}</span>' for s in subjects[:5]])
-                                st.markdown(tags_html, unsafe_allow_html=True)
+                            # Badges
+                            status_class = "badge-status-found" if book.get("status") == "found" else "badge-status-fallback"
+                            status_label = "API VERIFIED" if book.get("status") == "found" else "FALLBACK"
+                            pub_yr = book.get("publish_year", "N/A")
+                            incomplete_badge = '<span class="badge badge-incomplete">⚠️ INCOMPLETE INFO</span>' if has_incomplete_info(book) else ''
+                            
+                            st.markdown(
+                                f'<div><span class="badge {status_class}">{status_label}</span>{incomplete_badge}<span class="badge badge-year">📅 {pub_yr}</span></div>',
+                                unsafe_allow_html=True
+                            )
+                            
+                            # Title and Author
+                            st.markdown(f'<div class="book-title">{book.get("title", "Unknown Title")}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="book-author">✍️ {book.get("author", "Unknown Author")}</div>', unsafe_allow_html=True)
+                            
+                            # Expandable details
+                            with st.expander("📖 View Full Metadata"):
+                                st.write(f"**ISBN:** `{book.get('isbn', 'N/A')}`")
+                                st.write(f"**Publisher:** {book.get('publisher', 'N/A')}")
+                                st.write(f"**Query Source:** `{book.get('query', '')}`")
+                                st.write(f"**Description:** {book.get('description', 'No description available.')}")
                                 
-                            st.json(book)
-                            
-                        st.markdown('</div>', unsafe_allow_html=True)
-                        st.markdown("<br>", unsafe_allow_html=True)
+                                subjects = book.get("subjects", [])
+                                if subjects:
+                                    st.write("**Subjects / Tags:**")
+                                    tags_html = "".join([f'<span class="badge badge-subject">{s}</span>' for s in subjects[:5]])
+                                    st.markdown(tags_html, unsafe_allow_html=True)
+                                    
+                                st.json(book)
 
     with tab_edit:
         st.subheader("✏️ Edit Book Metadata")
