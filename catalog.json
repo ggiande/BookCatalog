@@ -1,0 +1,56 @@
+{
+  "total_count": 4,
+  "generated_at": "2026-09-13T22:59:10Z",
+  "books": [
+    {
+      "query": "9780140449136",
+      "isbn": "N/A",
+      "title": "Преступление и наказание",
+      "author": "Fiódor Dostoievski",
+      "publish_year": "1866",
+      "cover_url": "https://covers.openlibrary.org/b/id/9411873-L.jpg",
+      "publisher": "N/A",
+      "subjects": [],
+      "description": "First published in 1866 by Fiódor Dostoievski.",
+      "status": "found"
+    },
+    {
+      "query": "The Great Gatsby",
+      "isbn": "N/A",
+      "title": "The Great Gatsby",
+      "author": "Unknown Author",
+      "publish_year": "N/A",
+      "cover_url": "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80",
+      "publisher": "N/A",
+      "subjects": [
+        "Catalog Item"
+      ],
+      "description": "Metadata auto-generated fallback for: The Great Gatsby",
+      "status": "fallback"
+    },
+    {
+      "query": "1984",
+      "isbn": "N/A",
+      "title": "Nineteen Eighty-Four",
+      "author": "George Orwell",
+      "publish_year": "1949",
+      "cover_url": "https://covers.openlibrary.org/b/id/9267242-L.jpg",
+      "publisher": "N/A",
+      "subjects": [],
+      "description": "First published in 1949 by George Orwell.",
+      "status": "found"
+    },
+    {
+      "query": "Three Assasins",
+      "isbn": "9781419763861",
+      "title": "Three Assasins",
+      "author": "Kotaro Isaka",
+      "publish_year": "2023",
+      "cover_url": "https://www.abramsbooks.com/cover_images/1/9781419763861_s3.jpg",
+      "publisher": "The Overlook Press",
+      "subjects": [],
+      "description": "A darkly humorous thriller novel by Kōtarō Isaka. It serves as the first book in his Hitman trilogy and acts as a prequel/companion novel to his international bestseller, Bullet Train (which was adapted into a 2022 Hollywood film starring Brad Pitt)",
+      "status": "found"
+    }
+  ]
+}
